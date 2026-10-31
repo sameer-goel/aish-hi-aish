@@ -207,20 +207,46 @@ export default function WhatsAppModal({
     handleSendMessage('Hi! Can I get the link to view photos?', []);
   };
 
-  const sendMehendiPhoto = () => {
+  const makeUniqueSampleDataUrl = async (baseUrl: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width || 800;
+        canvas.height = img.height || 600;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          // Stamp 1 subtle unique pixel so each demo drop gets a fresh SHA-256 receipt
+          ctx.fillStyle = `rgb(${Date.now() % 255}, ${(Date.now() >> 4) % 255}, 180)`;
+          ctx.fillRect(0, 0, 1, 1);
+          resolve(canvas.toDataURL("image/jpeg", 0.9));
+        } else {
+          resolve(baseUrl);
+        }
+      };
+      img.onerror = () => resolve(baseUrl);
+      img.src = baseUrl;
+    });
+  };
+
+  const sendMehendiPhoto = async () => {
     const sample = DEMO_SAMPLES[0];
+    const uniqueUrl = await makeUniqueSampleDataUrl(sample.url);
     handleSendMessage(
-      'Bride Mehendi Glow & Henna Details 🌿✨ #mehendi',
-      [{ id: 'sample-m-' + Date.now(), name: 'mehendi.jpg', dataUrl: sample.url }],
+      inputText.trim() || 'Bride Mehendi Glow & Henna Details 🌿✨ #mehendi',
+      [{ id: 'sample-m-' + Date.now(), name: 'mehendi.jpg', dataUrl: uniqueUrl }],
       'Mehendi'
     );
   };
 
-  const sendSangeetPhoto = () => {
+  const sendSangeetPhoto = async () => {
     const sample = DEMO_SAMPLES[4];
+    const uniqueUrl = await makeUniqueSampleDataUrl(sample.url);
     handleSendMessage(
-      'Family Sangeet Dance Floor on Fire! 💃🔥 #sangeet',
-      [{ id: 'sample-s-' + Date.now(), name: 'sangeet.jpg', dataUrl: sample.url }],
+      inputText.trim() || 'Family Sangeet Dance Floor on Fire! 💃🔥 #sangeet',
+      [{ id: 'sample-s-' + Date.now(), name: 'sangeet.jpg', dataUrl: uniqueUrl }],
       'Sangeet'
     );
   };

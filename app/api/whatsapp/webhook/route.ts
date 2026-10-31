@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import {
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
       body = await req.json().catch(() => ({}));
     }
 
+    try { fs.appendFileSync("/tmp/incoming-meta-webhooks.log", new Date().toISOString() + " " + JSON.stringify(body) + "\n"); } catch {}
     let phone = '';
     let profileName = 'WhatsApp Guest';
     let relationship = 'Guest';
@@ -287,7 +289,13 @@ export async function POST(req: Request) {
     // Generate 1-Tap Magic Timeline & Gallery Links using public HTTPS tunnel or forwarded host so phones can open it anywhere
     const forwardedHost = req.headers.get("x-forwarded-host");
     const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
-    let origin = process.env.NEXT_PUBLIC_APP_URL || "https://dbbb0142931266.lhr.life";
+    let liveTunnel = "https://f746e1a3f02107.lhr.life";
+    try {
+      if (fs.existsSync("/tmp/current-tunnel-url.txt")) {
+        liveTunnel = fs.readFileSync("/tmp/current-tunnel-url.txt", "utf8").trim() || liveTunnel;
+      }
+    } catch {}
+    let origin = process.env.NEXT_PUBLIC_APP_URL || liveTunnel;
     if (forwardedHost && !forwardedHost.includes("localhost")) {
       origin = `${forwardedProto}://${forwardedHost}`;
     }
@@ -306,20 +314,50 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
 
 📸 *Send me your photos anytime* directly in this chat, and they'll instantly appear in our Live Wedding Timeline & Shared Album!
 
-💡 *Pro Tip:* Add #mehendi, #sangeet, or #wedding in your caption to automatically organize them into the event album!`;
+💡 *Pro Tip:* Add #mehendi, #sangeet, or #wedding in your caption to automatically organize them into the event album!
+
+✨ *Your Live Timeline:*
+${magicLink}
+
+🖼️ *Shared Photo Gallery:*
+${galleryLink}`;
+
+      if (body.object === "whatsapp_business_account" && metaAccessToken && metaPhoneNumberId && phone) {
+        try {
+          await fetch(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${metaAccessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone.replace(/[^0-9]/g, ""),
+              type: "text",
+              text: {
+                preview_url: true,
+                body: welcomeReply,
+              },
+            }),
+          });
+        } catch (replyErr) {
+          console.warn("Meta Graph welcome reply warning:", replyErr);
+        }
+      }
 
       return NextResponse.json({
         ok: true,
         botReply: welcomeReply,
         magicLink,
+        galleryLink,
         insertedPhotos: 0,
         skippedDuplicates: 0,
       }, {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Private-Network": "true",
-      },
-    });
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Private-Network": "true",
+        },
+      });
     }
 
     // -------------------------------------------------------------------------
