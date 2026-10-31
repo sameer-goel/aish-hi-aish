@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --cream: #fffaf8;
+  --pink: #f5e2ed;
+  --berry: #8f4e7c;
+  --berry-dark: #6e355c;
+  --ink: #352b34;
+  --muted: #826e7d;
+  --line: #ead8e2;
+  --gold: #d4a373;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--cream);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Serif Display Font for Headings */
+.font-serif-heading {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Floating Heart Burst Animation for Instagram Double-Tap */
+@keyframes heartBurst {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  30% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+  60% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -70%) scale(1.2);
+  }
+}
+
+.animate-heart-burst {
+  animation: heartBurst 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Subtle pulse glow for active story rings */
+@keyframes storyRingGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #8f4e7c;
+  }
+  50% {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 5px #d4a373;
+  }
+}
+
+.animate-story-ring {
+  animation: storyRingGlow 2.5s infinite ease-in-out;
+}
+
+/* Hide scrollbar for story ring container while keeping swipe functional */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

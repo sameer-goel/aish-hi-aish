@@ -6,9 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "node scripts/seed-supabase.mjs",
+    "verify:db": "node scripts/verify-supabase.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.118.0",
+    "@uppy/core": "^6.3.0",
+    "@uppy/dashboard": "^6.0.2",
+    "@uppy/tus": "^6.0.0",
+    "@uppy/xhr-upload": "^6.0.1",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
