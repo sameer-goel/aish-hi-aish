@@ -830,6 +830,7 @@ export default function Home() {
         currentUser={currentUser}
         existingPhotos={photos}
         onUploadSuccess={handleBatchIngested}
+        onNavigateView={setActiveView}
       />
 
       <WhatsAppModal
@@ -837,6 +838,7 @@ export default function Home() {
         onClose={() => setIsWhatsAppModalOpen(false)}
         currentUser={currentUser}
         onBatchIngested={handleBatchIngested}
+        onNavigateView={setActiveView}
       />
 
       <GalleryLightbox

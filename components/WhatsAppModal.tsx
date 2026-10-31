@@ -9,6 +9,7 @@ interface WhatsAppModalProps {
   onClose: () => void;
   currentUser: Profile | null;
   onBatchIngested: (batch: UploadBatch) => void;
+  onNavigateView?: (view: "timeline" | "gallery") => void;
 }
 
 interface AttachedMedia {
@@ -25,6 +26,7 @@ interface ChatMessage {
   text?: string;
   imageUrls?: string[];
   magicLink?: string;
+  galleryLink?: string;
   timestamp: string;
 }
 
@@ -46,6 +48,7 @@ export default function WhatsAppModal({
   onClose,
   currentUser,
   onBatchIngested,
+  onNavigateView,
 }: WhatsAppModalProps) {
   const [senderPhone, setSenderPhone] = useState(currentUser?.phone || '+919876543210');
   const [senderName, setSenderName] = useState(currentUser?.display_name || 'Sameer Goel');
@@ -170,6 +173,7 @@ export default function WhatsAppModal({
             sender: 'bot',
             text: data.botReply || 'Published to Timeline!',
             magicLink: data.magicLink,
+            galleryLink: data.galleryLink,
             timestamp: botTime,
           },
         ]);
@@ -434,21 +438,29 @@ export default function WhatsAppModal({
 
                   <p className="break-words [overflow-wrap:anywhere]">{m.text}</p>
                   {m.magicLink && (
-                    <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                      <a
-                        href={m.magicLink}
-                        onClick={(e) => {
-                          e.preventDefault();
+                    <div className="mt-3 pt-2.5 border-t border-gray-200/80 grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onNavigateView) onNavigateView("timeline");
                           onClose();
                         }}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-xs transition-colors"
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#8f4e7c] hover:bg-[#723c62] text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
                       >
-                        <span>✨ View Live Wedding Feed</span>
-                        <span>↗</span>
-                      </a>
-                      <span className="text-[10px] text-gray-400 truncate max-w-[140px]" title={m.magicLink}>
-                        Live on Timeline
-                      </span>
+                        <span>✨</span>
+                        <span>View Timeline</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (onNavigateView) onNavigateView("gallery");
+                          onClose();
+                        }}
+                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
+                      >
+                        <span>🖼️</span>
+                        <span>View Gallery</span>
+                      </button>
                     </div>
                   )}
                   <span

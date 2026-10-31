@@ -516,15 +516,14 @@ ${galleryLink}`;
         `📂 *Event Album:* ${eventName}\n` +
         `📝 *Post Title:* "${caption || eventName + ' Moment'}"\n` +
         `🧾 *Receipt ID:* #AISH-${receiptCode}` +
-        (skippedDuplicates > 0 ? `\n⚠️ *Duplicates Skipped:* ${skippedDuplicates} (SHA-256 verified)` : "") +
-        `\n\n✨ *Your Timeline & Feed (Full Access):*\n${magicLink}\n\n🖼️ *Shared Photo Gallery:*\n${galleryLink}`;
+        (skippedDuplicates > 0 ? `\n⚠️ *Duplicates Skipped:* ${skippedDuplicates} (SHA-256 verified)` : "");
     } else if (skippedDuplicates > 0) {
       botReply = `ℹ️ *Duplicate detected:* All ${skippedDuplicates} photo(s) were already in the wedding gallery (SHA-256 match). No duplicate was posted!`;
     } else {
       botReply = `Received your message! Tap below to open the live wedding gallery.`;
     }
 
-    // If this came from Meta Cloud API and WHATSAPP_ACCESS_TOKEN is configured, send real WhatsApp reply message!
+    // If this came from Meta Cloud API and WHATSAPP_ACCESS_TOKEN is configured, send Interactive 2-Button WhatsApp Reply!
     if (body.object === "whatsapp_business_account" && metaAccessToken && metaPhoneNumberId && phone) {
       try {
         await fetch(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
@@ -536,10 +535,24 @@ ${galleryLink}`;
           body: JSON.stringify({
             messaging_product: "whatsapp",
             to: phone.replace(/[^0-9]/g, ""),
-            type: "text",
-            text: {
-              preview_url: true,
-              body: `${botReply}\n\n🔗 Live Wedding Feed: ${magicLink}`,
+            type: "interactive",
+            interactive: {
+              type: "button",
+              body: {
+                text: `${botReply}\n\nTap a button below or open:\n✨ Timeline: ${origin}/t\n🖼️ Gallery: ${origin}/g`,
+              },
+              action: {
+                buttons: [
+                  {
+                    type: "reply",
+                    reply: { id: "view_timeline", title: "✨ View Timeline" },
+                  },
+                  {
+                    type: "reply",
+                    reply: { id: "view_gallery", title: "🖼️ View Gallery" },
+                  },
+                ],
+              },
             },
           }),
         });

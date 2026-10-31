@@ -18,6 +18,7 @@ interface UploadModalProps {
   currentUser: Profile | null;
   existingPhotos: Photo[];
   onUploadSuccess: (newBatch: UploadBatch) => void;
+  onNavigateView?: (view: "timeline" | "gallery") => void;
 }
 
 interface PreflightItem {
@@ -40,6 +41,7 @@ export default function UploadModal({
   currentUser,
   existingPhotos,
   onUploadSuccess,
+  onNavigateView,
 }: UploadModalProps) {
   const [eventName, setEventName] = useState<EventName>('Wedding');
   const [caption, setCaption] = useState('');
@@ -534,17 +536,32 @@ export default function UploadModal({
               <div><b>Duplicates Skipped:</b> {uploadReceipt.skippedCount}</div>
               <div className="col-span-2"><b>Post Title:</b> &ldquo;{uploadReceipt.caption}&rdquo; • Confirmed at {uploadReceipt.timestamp}</div>
             </div>
-            <div className="pt-2 flex justify-end">
+            <div className="pt-2 grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
+                  if (onNavigateView) onNavigateView("timeline");
                   setUploadReceipt(null);
                   setQueue([]);
                   onClose();
                 }}
-                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shadow-xs"
+                className="w-full py-2 px-3 rounded-xl bg-[#8f4e7c] hover:bg-[#723c62] text-white font-semibold text-xs shadow-xs flex items-center justify-center gap-1.5"
               >
-                ✨ View Post on Live Timeline →
+                <span>✨</span>
+                <span>View Timeline</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onNavigateView) onNavigateView("gallery");
+                  setUploadReceipt(null);
+                  setQueue([]);
+                  onClose();
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <span>🖼️</span>
+                <span>View Gallery</span>
               </button>
             </div>
           </div>
