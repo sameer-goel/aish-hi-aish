@@ -284,14 +284,17 @@ export async function POST(req: Request) {
       eventName = explicitEventName;
     }
 
-    // Generate 1-Tap Magic Login Link using actual origin
-    let origin = "http://localhost:3000";
-    try {
-      origin = new URL(req.url).origin;
-    } catch {
-      // fallback
+    // Generate 1-Tap Magic Timeline & Gallery Links using public HTTPS tunnel or forwarded host so phones can open it anywhere
+    const forwardedHost = req.headers.get("x-forwarded-host");
+    const forwardedProto = req.headers.get("x-forwarded-proto") || "https";
+    let origin = process.env.NEXT_PUBLIC_APP_URL || "https://dbbb0142931266.lhr.life";
+    if (forwardedHost && !forwardedHost.includes("localhost")) {
+      origin = `${forwardedProto}://${forwardedHost}`;
     }
-    const magicLink = `${origin}/?code=AISH2026&phone=${encodeURIComponent(normalizedPhone)}&name=${encodeURIComponent(uploader.display_name)}&rel=${encodeURIComponent(uploader.relationship)}`;
+    const baseAuthParams = `code=AISH2026&phone=${encodeURIComponent(normalizedPhone)}&name=${encodeURIComponent(uploader.display_name)}&rel=${encodeURIComponent(uploader.relationship)}`;
+    const magicLink = `${origin}/?${baseAuthParams}&view=timeline`;
+    const galleryLink = `${origin}/?${baseAuthParams}&view=gallery`;
+    const myTimelineLink = `${origin}/?${baseAuthParams}&view=timeline&filter=MyUploads`;
 
     // -------------------------------------------------------------------------
     // 4. Handle Text-Only Greeting / Inquiries (e.g. "Hi", "Hello")
@@ -474,10 +477,9 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
         `👤 *Uploader:* ${uploader.display_name} (${uploader.relationship})\n` +
         `📂 *Event Album:* ${eventName}\n` +
         `📝 *Post Title:* "${caption || eventName + ' Moment'}"\n` +
-        `🧾 *Receipt ID:* #AISH-${receiptCode}`;
-      if (skippedDuplicates > 0) {
-        botReply += `\n⚠️ *Duplicates Skipped:* ${skippedDuplicates} (SHA-256 verified)`;
-      }
+        `🧾 *Receipt ID:* #AISH-${receiptCode}` +
+        (skippedDuplicates > 0 ? `\n⚠️ *Duplicates Skipped:* ${skippedDuplicates} (SHA-256 verified)` : "") +
+        `\n\n✨ *Your Timeline & Feed (Full Access):*\n${magicLink}\n\n🖼️ *Shared Photo Gallery:*\n${galleryLink}`;
     } else if (skippedDuplicates > 0) {
       botReply = `ℹ️ *Duplicate detected:* All ${skippedDuplicates} photo(s) were already in the wedding gallery (SHA-256 match). No duplicate was posted!`;
     } else {
@@ -512,6 +514,8 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
       ok: true,
       botReply,
       magicLink,
+      galleryLink,
+      myTimelineLink,
       batch: createdBatch,
       insertedPhotos,
       skippedDuplicates,

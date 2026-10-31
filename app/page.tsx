@@ -50,6 +50,15 @@ export default function Home() {
       const urlPhone = searchParams.get('phone');
       const urlName = searchParams.get('name');
       const urlRel = searchParams.get('rel');
+      const urlView = searchParams.get('view');
+      const urlFilter = searchParams.get('filter');
+
+      if (urlView === 'gallery' || urlView === 'timeline') {
+        setActiveView(urlView);
+      }
+      if (urlFilter === 'MyUploads' || urlFilter === 'Mehendi' || urlFilter === 'Sangeet' || urlFilter === 'Wedding' || urlFilter === 'WhatsApp') {
+        setActiveStoryFilter(urlFilter as StoryFilter);
+      }
 
       if (urlCode && urlPhone) {
         try {
