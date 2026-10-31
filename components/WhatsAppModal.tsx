@@ -16,6 +16,7 @@ interface ChatMessage {
   sender: 'user' | 'bot';
   text?: string;
   imageUrl?: string;
+  magicLink?: string;
   timestamp: string;
 }
 
@@ -103,6 +104,7 @@ export default function WhatsAppModal({
             id: 'bot-' + Date.now(),
             sender: 'bot',
             text: data.botReply || 'Received your moments!',
+            magicLink: data.magicLink,
             timestamp: botTime,
           },
         ]);
@@ -237,7 +239,7 @@ export default function WhatsAppModal({
                 className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 shadow-xs text-xs sm:text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`max-w-[85%] rounded-2xl p-3 shadow-xs text-xs sm:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] ${
                     isUser
                       ? 'bg-[#d9fdd3] text-[#111b21] rounded-tr-none'
                       : 'bg-white text-[#111b21] rounded-tl-none border border-[#e2ddd5]'
@@ -255,7 +257,25 @@ export default function WhatsAppModal({
                     </div>
                   )}
 
-                  <p>{m.text}</p>
+                  <p className="break-words [overflow-wrap:anywhere]">{m.text}</p>
+                  {m.magicLink && (
+                    <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
+                      <a
+                        href={m.magicLink}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          onClose();
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-xs transition-colors"
+                      >
+                        <span>✨ View Live Wedding Feed</span>
+                        <span>↗</span>
+                      </a>
+                      <span className="text-[10px] text-gray-400 truncate max-w-[140px]" title={m.magicLink}>
+                        Magic Link Ready
+                      </span>
+                    </div>
+                  )}
                   <span
                     className={`block text-[10px] text-right mt-1 ${
                       isUser ? 'text-[#53bdeb]' : 'text-[#667781]'

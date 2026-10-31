@@ -179,23 +179,26 @@ export async function POST(req: Request) {
       eventName = explicitEventName;
     }
 
-    // Generate 1-Tap Magic Login Link for WhatsApp Guests
-    const magicLink = `https://aishhiaish.wedding/?phone=${encodeURIComponent(normalizedPhone)}&name=${encodeURIComponent(uploader.display_name)}&rel=${encodeURIComponent(uploader.relationship)}&code=AISH2026`;
+    // Generate 1-Tap Magic Login Link using actual origin
+    let origin = "http://localhost:3000";
+    try {
+      origin = new URL(req.url).origin;
+    } catch {
+      // fallback
+    }
+    const magicLink = `${origin}/?code=AISH2026&phone=${encodeURIComponent(normalizedPhone)}&name=${encodeURIComponent(uploader.display_name)}&rel=${encodeURIComponent(uploader.relationship)}`;
 
     // -------------------------------------------------------------------------
     // 4. Handle Text-Only Greeting / Inquiries (e.g. "Hi", "Hello")
     // -------------------------------------------------------------------------
     if (mediaItems.length === 0) {
-      const welcomeReply = `Namaste ${uploader.display_name}! 💍✨
+      const welcomeReply = `Namaste ${uploader.display_name} (${uploader.relationship})! 💍✨
 
 Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
 
 📸 *Send me your photos anytime* directly in this chat, and they'll instantly appear in our Live Wedding Timeline & Shared Album!
 
-💡 *Pro Tip:* Add #mehendi, #sangeet, or #wedding in your caption to automatically organize them into the event album!
-
-📱 *Open Live Album & Gallery:*
-${magicLink}`;
+💡 *Pro Tip:* Add #mehendi, #sangeet, or #wedding in your caption to automatically organize them into the event album!`;
 
       return NextResponse.json({
         ok: true,
@@ -332,8 +335,23 @@ ${magicLink}`;
         .insert(photosWithBatch)
         .select('*');
 
-      insertedPhotos = insertedData?.length || acceptedPhotosToInsert.length;
-      createdBatch.photos = insertedData || photosWithBatch;
+      const nowIso = new Date().toISOString();
+      const rawPhotos = (insertedData && insertedData.length > 0)
+        ? insertedData
+        : photosWithBatch.map((p, idx) => ({
+            ...p,
+            id: `wa-local-${Date.now()}-${idx}`,
+            created_at: nowIso,
+          }));
+      insertedPhotos = rawPhotos.length;
+      createdBatch.uploader = uploader;
+      createdBatch.created_at = createdBatch.created_at || nowIso;
+      createdBatch.photos = rawPhotos.map((p: any) => ({
+        ...p,
+        created_at: p.created_at || nowIso,
+        uploader,
+        comments: p.comments || [],
+      }));
     }
 
     // -------------------------------------------------------------------------
@@ -345,11 +363,11 @@ ${magicLink}`;
       if (skippedDuplicates > 0) {
         botReply += `\n*(Skipped ${skippedDuplicates} duplicate${skippedDuplicates > 1 ? 's' : ''} already in gallery)*`;
       }
-      botReply += `\n\n✨ View your moments on the live screen:\n${magicLink}`;
+      botReply += `\n\n✨ Posted under *${uploader.display_name} • ${uploader.relationship}*.`;
     } else if (skippedDuplicates > 0) {
-      botReply = `ℹ️ *Duplicate detected:* All ${skippedDuplicates} photo(s) were already uploaded to the wedding gallery! No duplicate was posted.\n\n✨ View gallery: ${magicLink}`;
+      botReply = `ℹ️ *Duplicate detected:* All ${skippedDuplicates} photo(s) were already in the wedding gallery (SHA-256 match). No duplicate was posted!`;
     } else {
-      botReply = `Received your message! Open your wedding album anytime: ${magicLink}`;
+      botReply = `Received your message! Tap below to open the live wedding gallery.`;
     }
 
     return NextResponse.json({

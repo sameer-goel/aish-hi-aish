@@ -78,12 +78,12 @@ export default function Home() {
         }
       }
 
-      // 2. Read from LocalStorage
+      // 2. Read from LocalStorage (and ensure real UUID from DB if it had a placeholder id)
       const saved = localStorage.getItem('aish_guest_session');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          if (parsed && parsed.display_name) {
+          if (parsed && parsed.display_name && parsed.id && !String(parsed.id).startsWith('guest-')) {
             setCurrentUser(parsed);
             return;
           }
@@ -92,13 +92,36 @@ export default function Home() {
         }
       }
 
-      // 3. Default demo guest if no prior session
+      // 3. Sync default guest with Supabase so currentUser.id is a real database UUID
+      try {
+        const res = await fetch('/api/auth/otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'verify',
+            phone: '+919876543210',
+            inviteCode: 'AISH2026',
+            displayName: 'Sameer Goel',
+            relationship: "Bride's Brother",
+            magic: true,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.profile) {
+          setCurrentUser(data.profile);
+          localStorage.setItem('aish_guest_session', JSON.stringify(data.profile));
+          return;
+        }
+      } catch {
+        // Fallback below
+      }
+
       const defaultGuest: Profile = {
-        id: 'guest-default-sameer',
+        id: '659c207b-2461-41ad-8fd3-a62d461e9ff3',
         phone: '+919876543210',
         display_name: 'Sameer Goel',
-        relationship: "Groom's Squad",
-        role: 'guest',
+        relationship: "Bride's Brother",
+        role: 'host',
         avatar_color: '#8f4e7c',
         invite_code: 'AISH2026',
         created_at: new Date().toISOString(),
@@ -248,9 +271,16 @@ export default function Home() {
   };
 
   const handleBatchIngested = (batch: UploadBatch) => {
-    // If batch has photos, prepend them to the state
     if (batch.photos && batch.photos.length > 0) {
-      setPhotos((prev) => [...(batch.photos as Photo[]), ...prev]);
+      const nowIso = new Date().toISOString();
+      const resolvedUploader = batch.uploader || currentUser || undefined;
+      const hydratedPhotos = (batch.photos as Photo[]).map((p) => ({
+        ...p,
+        created_at: p.created_at || batch.created_at || nowIso,
+        uploader: p.uploader || resolvedUploader,
+        comments: p.comments || [],
+      }));
+      setPhotos((prev) => [...hydratedPhotos, ...prev]);
     } else {
       fetchFeed();
     }

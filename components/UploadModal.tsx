@@ -145,16 +145,38 @@ export default function UploadModal({
     setIsProcessing(true);
     setOverallStatus('Keep this screen open until your batch shows ✓ Saved to Cloud');
 
-    const uploader = currentUser || {
-      id: 'guest-' + Math.random().toString(36).substring(2, 9),
+    let uploader: Profile = currentUser || {
+      id: '659c207b-2461-41ad-8fd3-a62d461e9ff3',
       phone: '+919876543210',
-      display_name: 'Wedding Guest',
-      relationship: 'Guest',
-      role: 'guest' as const,
+      display_name: 'Sameer Goel',
+      relationship: "Bride's Brother",
+      role: 'host' as const,
       avatar_color: '#8f4e7c',
       invite_code: 'AISH2026',
       created_at: new Date().toISOString(),
     };
+
+    // Ensure uploader has a real PostgreSQL UUID in public.profiles before inserting foreign keys
+    if (!uploader.id || uploader.id.startsWith('guest-')) {
+      const { data: dbProfile } = await supabase
+        .from('profiles')
+        .upsert(
+          {
+            phone: uploader.phone || '+919876543210',
+            display_name: uploader.display_name || 'Sameer Goel',
+            relationship: uploader.relationship || 'Guest',
+            role: uploader.role || 'guest',
+            avatar_color: uploader.avatar_color || '#8f4e7c',
+            invite_code: uploader.invite_code || 'AISH2026',
+          },
+          { onConflict: 'phone' }
+        )
+        .select('*')
+        .single();
+      if (dbProfile) {
+        uploader = dbProfile as Profile;
+      }
+    }
 
     const validPhotosToInsert: any[] = [];
 
@@ -257,6 +279,7 @@ export default function UploadModal({
         uploader,
       };
 
+      const nowIso = new Date().toISOString();
       const photosWithBatch = validPhotosToInsert.map((p) => ({
         ...p,
         batch_id: batchId,
@@ -267,7 +290,21 @@ export default function UploadModal({
         .insert(photosWithBatch)
         .select('*');
 
-      insertedBatch.photos = (insertedPhotos as Photo[]) || photosWithBatch;
+      const rawPhotos = (insertedPhotos && insertedPhotos.length > 0)
+        ? insertedPhotos
+        : photosWithBatch.map((p, idx) => ({
+            ...p,
+            id: `local-${Date.now()}-${idx}`,
+            created_at: nowIso,
+          }));
+
+      insertedBatch.uploader = uploader;
+      insertedBatch.photos = rawPhotos.map((p: any) => ({
+        ...p,
+        created_at: p.created_at || nowIso,
+        uploader,
+        comments: p.comments || [],
+      })) as Photo[];
       onUploadSuccess(insertedBatch);
     }
 

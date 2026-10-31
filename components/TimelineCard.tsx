@@ -73,13 +73,16 @@ export default function TimelineCard({
     document.body.removeChild(link);
   };
 
-  // Format relative timestamp
-  const formatTimeAgo = (dateStr: string) => {
-    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  // Format relative timestamp safely (never returns "Invalid Date")
+  const formatTimeAgo = (dateStr?: string) => {
+    if (!dateStr) return 'Just now';
+    const timestamp = new Date(dateStr).getTime();
+    if (Number.isNaN(timestamp)) return 'Just now';
+    const diff = Math.max(0, (Date.now() - timestamp) / 1000);
     if (diff < 60) return 'Just now';
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-    return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return new Date(timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
   // Event color badge styling
