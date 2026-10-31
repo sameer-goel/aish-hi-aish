@@ -60,24 +60,61 @@ export async function POST(req: Request) {
     // 1. Ingestion Channel Detection
     // -------------------------------------------------------------------------
 
-    // A. Meta WhatsApp Cloud API JSON
+    let metaPhoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || "";
+    const metaAccessToken = process.env.WHATSAPP_ACCESS_TOKEN || "";
+
+    // A. Meta WhatsApp Cloud API JSON (Graph API v21.0)
     if (body.object === 'whatsapp_business_account') {
       const entry = body.entry?.[0]?.changes?.[0]?.value;
+      if (entry?.metadata?.phone_number_id) {
+        metaPhoneNumberId = entry.metadata.phone_number_id;
+      }
       const contact = entry?.contacts?.[0];
       const message = entry?.messages?.[0];
+
+      // Ignore status-only webhook pings (delivered/read receipts)
+      if (!message && entry?.statuses) {
+        return NextResponse.json({ ok: true, statusPing: true });
+      }
 
       phone = message?.from || contact?.wa_id || '';
       profileName = contact?.profile?.name || 'WhatsApp Guest';
 
       if (message?.type === 'text') {
         caption = message.text?.body || '';
-      } else if (message?.type === 'image') {
-        caption = message.image?.caption || '';
-        if (message.image?.id || message.image?.link) {
+      } else if (message?.type === 'image' || message?.type === 'document') {
+        const mediaObj = message.type === 'image' ? message.image : message.document;
+        caption = mediaObj?.caption || '';
+        const mediaId = mediaObj?.id;
+        const directLink = mediaObj?.link;
+        let base64FromMeta: string | undefined;
+
+        // Real 2-Step Meta Graph API v21.0 Media Download using WHATSAPP_ACCESS_TOKEN
+        if (mediaId && metaAccessToken && !directLink) {
+          try {
+            const metaRes = await fetch(`https://graph.facebook.com/v21.0/${mediaId}`, {
+              headers: { Authorization: `Bearer ${metaAccessToken}` },
+            });
+            const metaJson = await metaRes.json();
+            if (metaJson?.url) {
+              const binRes = await fetch(metaJson.url, {
+                headers: { Authorization: `Bearer ${metaAccessToken}` },
+              });
+              const arrayBuf = await binRes.arrayBuffer();
+              const mime = mediaObj?.mime_type || "image/jpeg";
+              base64FromMeta = `data:${mime};base64,${Buffer.from(arrayBuf).toString("base64")}`;
+            }
+          } catch (dlErr) {
+            console.warn("Meta Graph media download warning:", dlErr);
+          }
+        }
+
+        if (mediaId || directLink) {
           mediaItems.push({
-            url: message.image?.link || `https://graph.facebook.com/v19.0/${message.image.id}`,
-            filename: `wa-${message.image.id || Date.now()}.jpg`,
-            sha256: message.image?.sha256,
+            url: directLink || `https://graph.facebook.com/v21.0/${mediaId}`,
+            base64: base64FromMeta,
+            filename: mediaObj?.filename || `wa-${mediaId || Date.now()}.jpg`,
+            sha256: mediaObj?.sha256?.replace(/[^a-fA-F0-9]/g, ""),
           });
         }
       }
@@ -99,7 +136,45 @@ export async function POST(req: Request) {
         }
       }
     }
-    // C. In-App WhatsApp Simulator JSON
+    // C. Whapi.Cloud / WAHA / Green-API Group & Direct Webhook Formats (2026 Linked-Device Gateways)
+    else if (Array.isArray(body.messages) && body.messages[0]) {
+      // Whapi.Cloud format
+      const msg = body.messages[0];
+      phone = msg.from || msg.chat_id?.replace(/@.+$/, "") || "+919876543210";
+      profileName = msg.from_name || msg.pushname || "WhatsApp Guest";
+      caption = msg.image?.caption || msg.text?.body || msg.caption || "";
+      if (msg.image?.link || msg.image?.url) {
+        mediaItems.push({
+          url: msg.image.link || msg.image.url,
+          filename: `whapi-${msg.id || Date.now()}.jpg`,
+          sha256: msg.image.sha256,
+        });
+      }
+    } else if (body.typeWebhook === "incomingMessageReceived" && body.messageData) {
+      // Green-API format
+      phone = body.senderData?.sender?.replace(/@.+$/, "") || "+919876543210";
+      profileName = body.senderData?.senderName || body.senderData?.chatName || "WhatsApp Guest";
+      caption = body.messageData?.fileMessageData?.caption || body.messageData?.textMessageData?.textMessage || "";
+      if (body.messageData?.fileMessageData?.downloadUrl) {
+        mediaItems.push({
+          url: body.messageData.fileMessageData.downloadUrl,
+          filename: body.messageData.fileMessageData.fileName || `greenapi-${Date.now()}.jpg`,
+        });
+      }
+    } else if (body.event === "message" && body.payload) {
+      // WAHA (WhatsApp HTTP API) format
+      const p = body.payload;
+      phone = (p.participant || p.from || "").replace(/@.+$/, "") || "+919876543210";
+      profileName = p._data?.notifyName || p.notifyName || "WhatsApp Guest";
+      caption = p.body || p.caption || "";
+      if (p.mediaUrl || p.media?.url) {
+        mediaItems.push({
+          url: p.mediaUrl || p.media.url,
+          filename: `waha-${p.id || Date.now()}.jpg`,
+        });
+      }
+    }
+    // D. In-App WhatsApp Simulator / Live Browser Bridge JSON
     else {
       phone = body.phone || '+919876543210';
       profileName = body.profileName || 'Wedding Guest';
@@ -236,7 +311,12 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
         magicLink,
         insertedPhotos: 0,
         skippedDuplicates: 0,
-      });
+      }, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Private-Network": "true",
+      },
+    });
     }
 
     // -------------------------------------------------------------------------
@@ -400,6 +480,30 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
       botReply = `Received your message! Tap below to open the live wedding gallery.`;
     }
 
+    // If this came from Meta Cloud API and WHATSAPP_ACCESS_TOKEN is configured, send real WhatsApp reply message!
+    if (body.object === "whatsapp_business_account" && metaAccessToken && metaPhoneNumberId && phone) {
+      try {
+        await fetch(`https://graph.facebook.com/v21.0/${metaPhoneNumberId}/messages`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${metaAccessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: phone.replace(/[^0-9]/g, ""),
+            type: "text",
+            text: {
+              preview_url: true,
+              body: `${botReply}\n\n🔗 Live Wedding Feed: ${magicLink}`,
+            },
+          }),
+        });
+      } catch (replyErr) {
+        console.warn("Meta Graph outbound reply warning:", replyErr);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       botReply,
@@ -408,10 +512,33 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
       insertedPhotos,
       skippedDuplicates,
       uploader,
+    }, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Private-Network": "true",
+      },
     });
   } catch (err: unknown) {
     console.error('WhatsApp webhook error:', err);
     const message = err instanceof Error ? err.message : 'Internal Server Error';
-    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: message }, {
+      status: 500,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Private-Network": "true",
+      },
+    });
   }
+}
+
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Access-Control-Request-Private-Network",
+      "Access-Control-Allow-Private-Network": "true",
+    },
+  });
 }

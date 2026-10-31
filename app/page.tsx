@@ -186,7 +186,33 @@ export default function Home() {
       )
       .subscribe();
 
+    // Listen for cross-tab postMessage from the web.whatsapp.com Live Bridge
+    const handleBridgeMessage = async (event: MessageEvent) => {
+      if (!event.data || event.data.type !== "AISH_WHATSAPP_WEB_BRIDGE") return;
+      try {
+        const res = await fetch("/api/whatsapp/webhook", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(event.data.payload),
+        });
+        const data = await res.json();
+        if (data.ok && data.batch) {
+          fetchFeed();
+        }
+        if (event.source && "postMessage" in event.source) {
+          (event.source as WindowProxy).postMessage(
+            { type: "AISH_WHATSAPP_WEB_ACK", ok: data.ok, insertedPhotos: data.insertedPhotos, skippedDuplicates: data.skippedDuplicates },
+            "*"
+          );
+        }
+      } catch (err) {
+        console.warn("Bridge message error:", err);
+      }
+    };
+    window.addEventListener("message", handleBridgeMessage);
+
     return () => {
+      window.removeEventListener("message", handleBridgeMessage);
       supabase.removeChannel(channel);
     };
   }, [fetchFeed]);
