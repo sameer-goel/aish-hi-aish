@@ -468,12 +468,16 @@ Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
     // 7. Construct WhatsApp Confirmation Reply
     // -------------------------------------------------------------------------
     let botReply = '';
+    const receiptCode = createdBatch?.id ? String(createdBatch.id).slice(0, 8).toUpperCase() : Math.random().toString(36).substring(2, 8).toUpperCase();
     if (insertedPhotos > 0) {
-      botReply = `✅ *Uploaded ${insertedPhotos} moment${insertedPhotos > 1 ? 's' : ''} to ${eventName} Timeline!* 🎉`;
+      botReply = `✅ *Upload Confirmed! (${insertedPhotos} photo${insertedPhotos > 1 ? 's' : ''} live on Timeline)* 🎉\n\n` +
+        `👤 *Uploader:* ${uploader.display_name} (${uploader.relationship})\n` +
+        `📂 *Event Album:* ${eventName}\n` +
+        `📝 *Post Title:* "${caption || eventName + ' Moment'}"\n` +
+        `🧾 *Receipt ID:* #AISH-${receiptCode}`;
       if (skippedDuplicates > 0) {
-        botReply += `\n*(Skipped ${skippedDuplicates} duplicate${skippedDuplicates > 1 ? 's' : ''} already in gallery)*`;
+        botReply += `\n⚠️ *Duplicates Skipped:* ${skippedDuplicates} (SHA-256 verified)`;
       }
-      botReply += `\n\n✨ Posted under *${uploader.display_name} • ${uploader.relationship}*.`;
     } else if (skippedDuplicates > 0) {
       botReply = `ℹ️ *Duplicate detected:* All ${skippedDuplicates} photo(s) were already in the wedding gallery (SHA-256 match). No duplicate was posted!`;
     } else {

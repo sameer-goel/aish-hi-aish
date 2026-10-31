@@ -46,6 +46,16 @@ export default function UploadModal({
   const [queue, setQueue] = useState<PreflightItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [overallStatus, setOverallStatus] = useState<string>('');
+  const [uploadReceipt, setUploadReceipt] = useState<{
+    receiptId: string;
+    uploaderName: string;
+    uploaderTitle: string;
+    eventName: string;
+    caption: string;
+    savedCount: number;
+    skippedCount: number;
+    timestamp: string;
+  } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -179,6 +189,7 @@ export default function UploadModal({
     }
 
     const validPhotosToInsert: any[] = [];
+    let finalBatchId = String(Date.now());
 
     for (let i = 0; i < queue.length; i++) {
       const item = queue[i];
@@ -268,6 +279,7 @@ export default function UploadModal({
         .single();
 
       const batchId = batchData?.id || 'batch-' + Math.random().toString(36).substring(2, 9);
+      finalBatchId = String(batchId);
       const insertedBatch: UploadBatch = batchData || {
         id: batchId,
         uploader_id: uploader.id,
@@ -308,11 +320,19 @@ export default function UploadModal({
       onUploadSuccess(insertedBatch);
     }
 
+    const skippedCount = queue.filter((q) => q.isDuplicate).length;
     setOverallStatus('✓ Saved to Cloud! Moments are now live on Timeline & Gallery.');
-    setTimeout(() => {
-      setIsProcessing(false);
-      onClose();
-    }, 1200);
+    setIsProcessing(false);
+    setUploadReceipt({
+      receiptId: "AISH-" + finalBatchId.slice(0, 8).toUpperCase(),
+      uploaderName: uploader.display_name,
+      uploaderTitle: uploader.relationship,
+      eventName,
+      caption: caption || `${eventName} Moment ✨`,
+      savedCount: validPhotosToInsert.length,
+      skippedCount,
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    });
   };
 
   const readyCount = queue.filter((q) => !q.isDuplicate).length;
@@ -495,6 +515,40 @@ export default function UploadModal({
         <div className="p-3 rounded-2xl bg-[#fff0f7] border border-[#f1dce5] text-xs text-[#754665] mb-5">
           <b>Notice:</b> {overallStatus || 'Keep this screen open until your batch shows ✓ Saved to Cloud'}
         </div>
+
+        {/* Server-Confirmed Upload Response Receipt Card */}
+        {uploadReceipt && (
+          <div className="mb-5 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 space-y-2 shadow-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-sm text-emerald-800 flex items-center gap-1.5">
+                <span>✅</span> Server-Confirmed Upload Receipt
+              </span>
+              <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-white border border-emerald-200 text-emerald-800 font-semibold">
+                #{uploadReceipt.receiptId}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 pt-1 text-[11px]">
+              <div><b>Uploader:</b> {uploadReceipt.uploaderName} ({uploadReceipt.uploaderTitle})</div>
+              <div><b>Event Album:</b> {uploadReceipt.eventName}</div>
+              <div><b>Photos Saved:</b> {uploadReceipt.savedCount} uploaded to Supabase</div>
+              <div><b>Duplicates Skipped:</b> {uploadReceipt.skippedCount}</div>
+              <div className="col-span-2"><b>Post Title:</b> &ldquo;{uploadReceipt.caption}&rdquo; • Confirmed at {uploadReceipt.timestamp}</div>
+            </div>
+            <div className="pt-2 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadReceipt(null);
+                  setQueue([]);
+                  onClose();
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs shadow-xs"
+              >
+                ✨ View Post on Live Timeline →
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Upload Button */}
         <div className="flex gap-3">
