@@ -265,12 +265,12 @@ export default function WhatsAppModal({
               👤 WhatsApp Uploader Identity & Title (Appears on Timeline Post)
             </span>
             <a
-              href="https://wa.me/919876543210?text=Hi%20AishHiAish"
+              href="https://wa.me/15552131047?text=Hi%20AishHiAish"
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#00a884] font-semibold hover:underline shrink-0"
             >
-              wa.me Link ↗
+              Message +1 (555) 213-1047 on WhatsApp ↗
             </a>
           </div>
 
