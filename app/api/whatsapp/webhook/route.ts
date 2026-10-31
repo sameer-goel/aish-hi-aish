@@ -84,6 +84,10 @@ export async function POST(req: Request) {
 
       if (message?.type === 'text') {
         caption = message.text?.body || '';
+      } else if (message?.type === 'interactive') {
+        const replyId = message.interactive?.button_reply?.id || message.interactive?.list_reply?.id || '';
+        const replyTitle = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || '';
+        caption = replyId || replyTitle || 'menu';
       } else if (message?.type === 'image' || message?.type === 'document') {
         const mediaObj = message.type === 'image' ? message.image : message.document;
         caption = mediaObj?.caption || '';
@@ -308,19 +312,10 @@ export async function POST(req: Request) {
     // 4. Handle Text-Only Greeting / Inquiries (e.g. "Hi", "Hello")
     // -------------------------------------------------------------------------
     if (mediaItems.length === 0) {
-      const welcomeReply = `Namaste ${uploader.display_name} (${uploader.relationship})! 💍✨
-
-Welcome to Aishwarya & Ashish's Wedding Moments Concierge!
-
-📸 *Send me your photos anytime* directly in this chat, and they'll instantly appear in our Live Wedding Timeline & Shared Album!
-
-💡 *Pro Tip:* Add #mehendi, #sangeet, or #wedding in your caption to automatically organize them into the event album!
-
-✨ *Your Live Timeline:*
-${magicLink}
-
-🖼️ *Shared Photo Gallery:*
-${galleryLink}`;
+      const isUploadPrompt = lowerCaption.includes("upload_photos") || lowerCaption.includes("upload");
+      const welcomeReply = isUploadPrompt
+        ? `📸 *Ready to Upload to AishHiAish Wedding Moments!*\n\n👤 *Posting as:* ${uploader.display_name} (${uploader.relationship})\n\nTap the *📎 Attach / Upload* button below to select photos from your phone gallery, or choose an event tag:`
+        : `Namaste *${uploader.display_name}* (${uploader.relationship})! 💍✨\n\nWelcome to *Aishwarya & Ashish's Wedding Moments* Concierge!\n\nChoose an option from the menu below to upload your wedding photos or browse the live celebration:`;
 
       if (body.object === "whatsapp_business_account" && metaAccessToken && metaPhoneNumberId && phone) {
         try {
@@ -333,10 +328,26 @@ ${galleryLink}`;
             body: JSON.stringify({
               messaging_product: "whatsapp",
               to: phone.replace(/[^0-9]/g, ""),
-              type: "text",
-              text: {
-                preview_url: true,
-                body: welcomeReply,
+              type: "interactive",
+              interactive: {
+                type: "button",
+                header: {
+                  type: "text",
+                  text: "💍 AishHiAish Wedding Concierge",
+                },
+                body: {
+                  text: `${welcomeReply}\n\n✨ Timeline: ${origin}/t\n🖼️ Gallery: ${origin}/g`,
+                },
+                footer: {
+                  text: "Tap a button below or attach photos 📎",
+                },
+                action: {
+                  buttons: [
+                    { type: "reply", reply: { id: "upload_photos", title: "📸 Upload Photos" } },
+                    { type: "reply", reply: { id: "view_timeline", title: "✨ View Timeline" } },
+                    { type: "reply", reply: { id: "view_gallery", title: "🖼️ View Gallery" } },
+                  ],
+                },
               },
             }),
           });
@@ -347,9 +358,12 @@ ${galleryLink}`;
 
       return NextResponse.json({
         ok: true,
+        isMenu: true,
         botReply: welcomeReply,
         magicLink,
         galleryLink,
+        shortTimelineUrl: `${origin}/t`,
+        shortGalleryUrl: `${origin}/g`,
         insertedPhotos: 0,
         skippedDuplicates: 0,
       }, {

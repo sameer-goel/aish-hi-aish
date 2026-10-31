@@ -27,6 +27,7 @@ interface ChatMessage {
   imageUrls?: string[];
   magicLink?: string;
   galleryLink?: string;
+  showUploadMenu?: boolean;
   timestamp: string;
 }
 
@@ -59,7 +60,10 @@ export default function WhatsAppModal({
     {
       id: 'init-1',
       sender: 'bot',
-      text: 'Namaste! 💍 Welcome to the AishHiAish WhatsApp Wedding Bot!\n\nTap 📎 below to select photos from your phone/computer, type a moment title/caption, and hit ➤ to publish directly to the Live Wedding Timeline under your Name & Title!',
+      text: 'Namaste! 💍 Welcome to *Aishwarya & Ashish\x27s Wedding Moments* Concierge!\n\nChoose an option from the menu below to upload your AishHiAish event photos or view the live celebration:',
+      magicLink: '/t',
+      galleryLink: '/g',
+      showUploadMenu: true,
       timestamp: '10:00 AM',
     },
   ]);
@@ -174,6 +178,7 @@ export default function WhatsAppModal({
             text: data.botReply || 'Published to Timeline!',
             magicLink: data.magicLink,
             galleryLink: data.galleryLink,
+            showUploadMenu: Boolean(data.isMenu),
             timestamp: botTime,
           },
         ]);
@@ -438,29 +443,75 @@ export default function WhatsAppModal({
 
                   <p className="break-words [overflow-wrap:anywhere]">{m.text}</p>
                   {m.magicLink && (
-                    <div className="mt-3 pt-2.5 border-t border-gray-200/80 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onNavigateView) onNavigateView("timeline");
-                          onClose();
-                        }}
-                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#8f4e7c] hover:bg-[#723c62] text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
-                      >
-                        <span>✨</span>
-                        <span>View Timeline</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (onNavigateView) onNavigateView("gallery");
-                          onClose();
-                        }}
-                        className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
-                      >
-                        <span>🖼️</span>
-                        <span>View Gallery</span>
-                      </button>
+                    <div className="mt-3 pt-2.5 border-t border-gray-200/80 space-y-2">
+                      {m.showUploadMenu && (
+                        <div className="space-y-1.5">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-[#00a884] hover:bg-[#069375] text-white font-bold text-xs shadow-xs transition-all active:scale-95"
+                          >
+                            <span>📸</span>
+                            <span>Upload AishHiAish Event Photos</span>
+                          </button>
+                          <div className="grid grid-cols-3 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEvent("Mehendi");
+                                fileInputRef.current?.click();
+                              }}
+                              className="py-1.5 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-semibold text-[11px] transition-colors"
+                            >
+                              🌿 Mehendi Upload
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEvent("Sangeet");
+                                fileInputRef.current?.click();
+                              }}
+                              className="py-1.5 px-2 rounded-lg bg-pink-50 hover:bg-pink-100 text-pink-800 border border-pink-200 font-semibold text-[11px] transition-colors"
+                            >
+                              💃 Sangeet Upload
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedEvent("Wedding");
+                                fileInputRef.current?.click();
+                              }}
+                              className="py-1.5 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold text-[11px] transition-colors"
+                            >
+                              👑 Wedding Upload
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onNavigateView) onNavigateView("timeline");
+                            onClose();
+                          }}
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-[#8f4e7c] hover:bg-[#723c62] text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
+                        >
+                          <span>✨</span>
+                          <span>View Timeline</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (onNavigateView) onNavigateView("gallery");
+                            onClose();
+                          }}
+                          className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs transition-all active:scale-95"
+                        >
+                          <span>🖼️</span>
+                          <span>View Gallery</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                   <span
