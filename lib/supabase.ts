@@ -183,7 +183,7 @@ export function getDemoFallbackPhotos(): Photo[] {
       role: sample.relationship.includes('Organizing') ? 'organizer' : 'guest',
       avatar_color: color,
       invite_code: 'AISH2026',
-      created_at: new Date(Date.now() - (6 - sample.id) * 3600000 * 4).toISOString(),
+      created_at: '2026-10-31T08:00:00.000Z',
     };
 
     const comments: Comment[] = sample.comments.map((c, cIdx) => ({
@@ -194,7 +194,7 @@ export function getDemoFallbackPhotos(): Photo[] {
       author_name: c.who,
       author_relationship: 'Family',
       body: c.text,
-      created_at: new Date(Date.now() - (6 - sample.id) * 3600000 * 2).toISOString(),
+      created_at: '2026-10-31T08:00:00.000Z',
     }));
 
     return {
@@ -213,7 +213,7 @@ export function getDemoFallbackPhotos(): Photo[] {
       source: 'seed',
       likes_count: sample.likes || (sample.id === 2 ? 8 : sample.id === 3 ? 12 : 5),
       is_hidden: false,
-      created_at: new Date(Date.now() - (6 - sample.id) * 3600000 * 4).toISOString(),
+      created_at: '2026-10-31T08:00:00.000Z',
       uploader,
       comments,
     };
