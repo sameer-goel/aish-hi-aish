@@ -73,9 +73,9 @@ export default function TimelineCard({
     document.body.removeChild(link);
   };
 
-  // Format relative timestamp safely (never returns "Invalid Date")
+  // Format relative timestamp safely and deterministically for SSR + Client
   const formatTimeAgo = (dateStr?: string) => {
-    if (!dateStr) return 'Just now';
+    if (!dateStr || typeof window === 'undefined') return 'Today';
     const timestamp = new Date(dateStr).getTime();
     if (Number.isNaN(timestamp)) return 'Just now';
     const diff = Math.max(0, (Date.now() - timestamp) / 1000);

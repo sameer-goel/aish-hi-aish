@@ -29,7 +29,7 @@ export function WeddingApp({ defaultView }: { defaultView?: ActiveView } = {}) {
     role: 'host',
     avatar_color: '#8f4e7c',
     invite_code: 'AISH2026',
-    created_at: new Date().toISOString(),
+    created_at: '2026-10-31T08:00:00.000Z',
   });
 
   // Data state (instant non-blocking fallback photos, immediately hydrated by Supabase)
