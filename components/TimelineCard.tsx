@@ -159,6 +159,18 @@ export default function TimelineCard({
         )}
       </div>
 
+      {/* 1.5 Prominent Post Title / Moment Headline Banner */}
+      {post.caption && (
+        <div className="px-4 sm:px-5 py-2.5 bg-[#fffaf8] border-b border-[#f5e2ed]/80 flex items-center justify-between gap-2">
+          <h3 className="font-serif-heading font-bold text-sm sm:text-base text-[#352b34] leading-snug">
+            “{post.caption}”
+          </h3>
+          <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#f5e2ed] text-[#8f4e7c]">
+            {post.uploader.display_name} • {post.uploader.relationship}
+          </span>
+        </div>
+      )}
+
       {/* 2. Photo Carousel with Double-Tap Heart Burst */}
       <div
         className="relative w-full aspect-[4/3] sm:aspect-[4/3] bg-[#f5e2ed]/40 select-none overflow-hidden cursor-pointer"
