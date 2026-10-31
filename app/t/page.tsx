@@ -1,5 +1,5 @@
-import Home from '../page';
+import { WeddingApp } from '../page';
 
 export default function TimelineDirectPage() {
-  return <Home defaultView="timeline" />;
+  return <WeddingApp defaultView="timeline" />;
 }

@@ -1,5 +1,5 @@
-import Home from '../page';
+import { WeddingApp } from '../page';
 
 export default function GalleryDirectPage() {
-  return <Home defaultView="gallery" />;
+  return <WeddingApp defaultView="gallery" />;
 }

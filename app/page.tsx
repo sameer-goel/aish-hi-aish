@@ -19,7 +19,7 @@ import HostBar from '@/components/HostBar';
 
 type ActiveView = 'timeline' | 'gallery';
 
-export default function Home({ defaultView }: { defaultView?: ActiveView } = {}) {
+export function WeddingApp({ defaultView }: { defaultView?: ActiveView } = {}) {
   // Current logged in user (instant non-blocking initial profile)
   const [currentUser, setCurrentUser] = useState<Profile | null>({
     id: '659c207b-2461-41ad-8fd3-a62d461e9ff3',
@@ -154,7 +154,6 @@ export default function Home({ defaultView }: { defaultView?: ActiveView } = {})
   // 2. Fetch Photos & Fallback Resilience
   // ---------------------------------------------------------------------------
   const fetchFeed = useCallback(async () => {
-    setIsLoading(true);
     try {
       // Fetch photos with uploader profile and comments
       const { data: dbPhotos, error: photosErr } = await supabase
@@ -863,4 +862,8 @@ export default function Home({ defaultView }: { defaultView?: ActiveView } = {})
       />
     </div>
   );
+}
+
+export default function Home() {
+  return <WeddingApp />;
 }
