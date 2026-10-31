@@ -19,16 +19,25 @@ import HostBar from '@/components/HostBar';
 
 type ActiveView = 'timeline' | 'gallery';
 
-export default function Home() {
-  // Current logged in user
-  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+export default function Home({ defaultView }: { defaultView?: ActiveView } = {}) {
+  // Current logged in user (instant non-blocking initial profile)
+  const [currentUser, setCurrentUser] = useState<Profile | null>({
+    id: '659c207b-2461-41ad-8fd3-a62d461e9ff3',
+    phone: '+31682403239',
+    display_name: 'Sameer Goel',
+    relationship: "Bride's Brother",
+    role: 'host',
+    avatar_color: '#8f4e7c',
+    invite_code: 'AISH2026',
+    created_at: new Date().toISOString(),
+  });
 
-  // Data state
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  // Data state (instant non-blocking fallback photos, immediately hydrated by Supabase)
+  const [photos, setPhotos] = useState<Photo[]>(() => getDemoFallbackPhotos());
+  const [isLoading, setIsLoading] = useState(false);
 
   // Active view and filters
-  const [activeView, setActiveView] = useState<ActiveView>('timeline');
+  const [activeView, setActiveView] = useState<ActiveView>(defaultView || 'timeline');
   const [activeStoryFilter, setActiveStoryFilter] = useState<StoryFilter>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showHiddenOnly, setShowHiddenOnly] = useState(false);

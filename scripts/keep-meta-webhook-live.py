@@ -1,4 +1,4 @@
-import os, pty, re, subprocess, time, json, urllib.request
+import os, pty, re, subprocess, time, json, urllib.request, threading
 
 env_path = "/Users/440k/projects/aish-hi-aish/.env.local"
 WABA_ID = "1026312127162635"
@@ -42,7 +42,7 @@ def register_meta_webhook(base_url):
         tf.write(base_url)
     save_tunnel_to_supabase(base_url)
     for attempt in range(6):
-        time.sleep(3)
+        time.sleep(2)
         try:
             token = get_env_val("WHATSAPP_ACCESS_TOKEN")
             req = urllib.request.Request(
@@ -70,7 +70,7 @@ def register_meta_webhook(base_url):
 while True:
     master, slave = pty.openpty()
     p = subprocess.Popen(
-        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=20", "-R", "80:127.0.0.1:3000", "nokey@localhost.run"],
+        ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "ServerAliveInterval=20", "-R", "80:localhost:3000", "nokey@localhost.run"],
         stdin=slave, stdout=slave, stderr=slave, close_fds=True
     )
     os.close(slave)
@@ -78,7 +78,7 @@ while True:
     buf = ""
     while True:
         try:
-            data = os.read(master, 1024)
+            data = os.read(master, 4096)
             if not data:
                 break
             chunk = data.decode("utf-8", errors="ignore")
@@ -86,7 +86,7 @@ while True:
             m = re.search(r"https://[a-z0-9]+\.lhr\.life", buf)
             if m and m.group(0) != registered_url:
                 registered_url = m.group(0)
-                register_meta_webhook(registered_url)
+                threading.Thread(target=register_meta_webhook, args=(registered_url,), daemon=True).start()
         except OSError:
             break
     os.close(master)
