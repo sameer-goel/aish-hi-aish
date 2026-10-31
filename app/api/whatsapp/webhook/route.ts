@@ -129,8 +129,38 @@ export async function POST(req: Request) {
       .eq('phone', normalizedPhone)
       .maybeSingle();
 
+    // Support inline [Title: ...] or [Bride's Uncle] prefix in WhatsApp caption
+    const bracketMatch = caption.match(/^\[(?:title:\s*)?([^\]]{2,40})\]\s*(.*)$/i);
+    if (bracketMatch) {
+      relationship = bracketMatch[1].trim();
+      caption = bracketMatch[2].trim();
+    }
+
     if (existingProfile) {
-      uploader = existingProfile;
+      const nextName =
+        profileName && profileName !== "WhatsApp Guest" && profileName !== "Wedding Guest"
+          ? profileName.trim()
+          : existingProfile.display_name;
+      const nextRel =
+        relationship && relationship !== "Guest"
+          ? relationship.trim()
+          : existingProfile.relationship;
+
+      if (nextName !== existingProfile.display_name || nextRel !== existingProfile.relationship) {
+        const { data: updatedProfile } = await supabase
+          .from("profiles")
+          .update({ display_name: nextName, relationship: nextRel })
+          .eq("id", existingProfile.id)
+          .select("*")
+          .single();
+        uploader = (updatedProfile as Profile) || {
+          ...existingProfile,
+          display_name: nextName,
+          relationship: nextRel,
+        };
+      } else {
+        uploader = existingProfile;
+      }
     } else {
       const avatarColor = generateAvatarColor(profileName + normalizedPhone);
       const { data: newProfile, error: profileErr } = await supabase

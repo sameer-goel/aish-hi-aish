@@ -166,6 +166,29 @@ export default function Home() {
 
   useEffect(() => {
     fetchFeed();
+
+    // Live Realtime subscription for new WhatsApp & Web uploads/comments
+    const channel = supabase
+      .channel("aishhiaish-live-feed")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "photos" },
+        () => {
+          fetchFeed();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "comments" },
+        () => {
+          fetchFeed();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchFeed]);
 
   // ---------------------------------------------------------------------------
